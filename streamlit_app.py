@@ -7,7 +7,7 @@ def parse_docs_yaml(yaml_content):
     try:
         data = yaml.safe_load(yaml_content)
         summary_lines = ["# Table of contents\n"]
-        
+
         if "navigation" in data and "layout" in data["navigation"]:
             for section in data["navigation"]["layout"]:
                 if "section" in section and "contents" in section:
@@ -30,7 +30,12 @@ if uploaded_file:
     
     st.subheader("Generated SUMMARY.md")
     st.code(summary_md, language="markdown")
-    
+
     # Provide a download button
     summary_bytes = summary_md.encode("utf-8")
     st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+
+# Debugging: Show installed packages
+import subprocess
+installed_packages = subprocess.run(["pip", "list"], capture_output=True, text=True)
+st.text(installed_packages.stdout)
