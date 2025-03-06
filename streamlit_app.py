@@ -32,12 +32,13 @@ def html_to_markdown(html_content):
             # Add the link as a markdown list item
             markdown_output += "  " * (level - 1) + f"* [{text}]({href})\n"
 
-            # Check for nested elements, such as <dl>, which may have nested links
-            next_level = link.find_parent(['dt', 'dd', 'dl'])
-            if next_level and next_level.find('dl'):
-                extract_links(next_level, level + 1)
+            # Look for nested <dl> (definition list) elements and process them as sub-pages
+            nested_dl = link.find_parent('dd')  # Check if it's in a <dd> (nested list item)
+            if nested_dl:
+                # Recursive call for nested <dl> inside the <dd>
+                extract_links(nested_dl, level + 1)
 
-    # Extract links from the entire document (or a specific section if needed)
+    # Start processing from the entire document (or specific part if needed)
     extract_links(soup)
 
     return markdown_output
