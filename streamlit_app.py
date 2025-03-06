@@ -4,27 +4,41 @@ from bs4 import BeautifulSoup
 def html_to_markdown(html_content):
     # Parse HTML content using BeautifulSoup
     soup = BeautifulSoup(html_content, 'html.parser')
-    markdown_output = ""
+    markdown_output = "# Table of contents\n\n"  # Starting header for Table of Contents
 
-    # Process groups
-    groups = soup.find_all(class_='group')  # Assuming groups have class "group", adjust based on your HTML structure
-    for group in groups:
-        group_name = group.get_text(strip=True)
-        markdown_output += f"## {group_name}\n"
+    def extract_links(tag, level=1):
+        """
+        Extract links from the HTML, handle nested links recursively.
+        """
+        nonlocal markdown_output
 
-    # Process pages and subpages
-    pages = soup.find_all(class_='page')  # Assuming pages have class "page", adjust based on your HTML structure
-    for page in pages:
-        page_name = page.get_text(strip=True)
-        page_link = page.get('href', '').replace('.html', '.md')  # Convert .html to .md
-        markdown_output += f"* [{page_name}]({page_link})\n"
-        
-        # Check for subpages
-        subpages = page.find_all(class_='subpage')  # Assuming subpages have class "subpage", adjust as needed
-        for subpage in subpages:
-            subpage_name = subpage.get_text(strip=True)
-            subpage_link = subpage.get('href', '').replace('.html', '.md')  # Convert .html to .md
-            markdown_output += f"  * [{subpage_name}]({subpage_link})\n"
+        # Check if the tag is a group and treat it as a header
+        if tag.name == 'span' and tag.get('class') == ['section']:
+            # Convert group name to Markdown header
+            group_name = tag.get_text(strip=True)
+            markdown_output += f"## {group_name}\n"
+
+        # Find all anchor tags in the current tag
+        links = tag.find_all('a', href=True)
+
+        for link in links:
+            text = link.get_text(strip=True)
+            href = link['href']
+
+            # Convert .html to .md
+            if href.endswith('.html'):
+                href = href.replace('.html', '.md')
+
+            # Add the link as a markdown list item
+            markdown_output += "  " * (level - 1) + f"* [{text}]({href})\n"
+
+            # Check for nested elements, such as <dl>, which may have nested links
+            next_level = link.find_parent(['dt', 'dd', 'dl'])
+            if next_level and next_level.find('dl'):
+                extract_links(next_level, level + 1)
+
+    # Extract links from the entire document (or a specific section if needed)
+    extract_links(soup)
 
     return markdown_output
 
