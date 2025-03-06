@@ -1,50 +1,47 @@
 import streamlit as st
-import json
 import yaml
+import json
 
+# Function to extract structure from YAML or JSON
 def extract_structure(data, summary_lines, level=2):
-    """Recursively extracts section, page, and path from the JSON/YAML structure."""
+    """Recursively extracts section, page, and path from the data structure."""
     if isinstance(data, list):  # If the current data is a list, iterate over it
         for item in data:
             extract_structure(item, summary_lines, level)
     
     elif isinstance(data, dict):  # If it's a dictionary, look for relevant keys
-        if "group" in data:
-            summary_lines.append(f"{'#' * level} {data['group']}\n")  # Groups become ##, ###, etc.
+        if "section" in data:
+            summary_lines.append(f"{'#' * level} {data['section']}\n")  # Sections become ##, ###, etc.
         
-        if "pages" in data:
-            for page in data["pages"]:
-                if isinstance(page, str):  # If the page is just a string, create a markdown link
-                    page_link = page.replace("/", "/") + ".md"
-                    summary_lines.append(f"* [{page}]({page_link})\n")
-                elif isinstance(page, dict):  # Handle nested groups
-                    extract_structure(page, summary_lines, level + 1)
+        if "page" in data and "path" in data:
+            summary_lines.append(f"* [{data['page']}]({data['path']})\n")
+        
+        # Recursively check for nested structures
+        for key, value in data.items():
+            if isinstance(value, (list, dict)):  # If nested, go deeper
+                extract_structure(value, summary_lines, level + 1)
 
+# Parse YAML content and convert it into SUMMARY.md format
 def parse_docs_yaml(yaml_content):
-    """Parses the YAML file and extracts groups and pages."""
+    """Parses the YAML file and extracts sections, pages, and paths."""
     try:
         data = yaml.safe_load(yaml_content)
         summary_lines = ["# Table of contents\n"]
-        
-        # Check if 'navigation' key exists in the YAML structure
-        if "navigation" in data:
-            for item in data["navigation"]:
-                extract_structure(item, summary_lines)
+
+        extract_structure(data, summary_lines)
 
         return "\n".join(summary_lines)
     except Exception as e:
         return f"Error parsing YAML: {e}"
 
+# Parse JSON content and convert it into SUMMARY.md format
 def parse_mint_json(json_content):
-    """Parses the JSON file and extracts groups and pages."""
+    """Parses the JSON file and extracts sections, pages, and paths."""
     try:
         data = json.loads(json_content)
         summary_lines = ["# Table of contents\n"]
 
-        # Check if 'navigation' key exists in the JSON structure
-        if "navigation" in data:
-            for item in data["navigation"]:
-                extract_structure(item, summary_lines)
+        extract_structure(data, summary_lines)
 
         return "\n".join(summary_lines)
     except Exception as e:
