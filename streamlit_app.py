@@ -6,11 +6,20 @@ def html_to_markdown(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     markdown_output = "# Table of contents\n\n"  # Starting header for Table of Contents
 
+    # Set to keep track of already processed elements (to avoid infinite recursion)
+    visited_tags = set()
+
     def extract_links(tag, level=1):
         """
         Extract links from the HTML, handle nested links recursively.
         """
         nonlocal markdown_output
+
+        # Check if the tag is already processed to prevent infinite recursion
+        tag_id = id(tag)
+        if tag_id in visited_tags:
+            return
+        visited_tags.add(tag_id)
 
         # Check if the tag is a group and treat it as a header
         if tag.name == 'span' and tag.get('class') == ['section']:
@@ -52,11 +61,14 @@ html_input = st.text_area("Paste your HTML content here", height=300)
 # Convert the HTML content to Markdown when user presses the button
 if st.button("Convert to Markdown"):
     if html_input:
-        # Convert the HTML input to Markdown
-        markdown_content = html_to_markdown(html_input)
+        try:
+            # Convert the HTML input to Markdown
+            markdown_content = html_to_markdown(html_input)
 
-        # Display the converted Markdown content in a text area
-        st.subheader("Converted Markdown")
-        st.text_area("Markdown Output", value=markdown_content, height=300)
+            # Display the converted Markdown content in a text area
+            st.subheader("Converted Markdown")
+            st.text_area("Markdown Output", value=markdown_content, height=300)
+        except Exception as e:
+            st.error(f"Error: {e}")
     else:
         st.error("Please paste HTML content into the text area.")
