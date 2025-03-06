@@ -14,7 +14,9 @@ def extract_structure(data, summary_lines, level=2):
             summary_lines.append(f"{'#' * level} {data['section']}\n")  # Sections become ##, ###, etc.
         
         if "page" in data and "path" in data:
-            summary_lines.append(f"* [{data['page']}]({data['path']})\n")
+            # Replace .mdx with .md in the page path
+            page_path = data['path'].replace(".mdx", ".md")
+            summary_lines.append(f"* [{data['page']}]({page_path})\n")
         
         # Recursively check for nested structures
         for key, value in data.items():
