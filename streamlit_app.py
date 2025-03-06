@@ -1,6 +1,7 @@
 import streamlit as st
 import yaml
 import json
+from bs4 import BeautifulSoup
 
 # Function to convert mint.json to SUMMARY.md format
 def extract_mint_structure(data, summary_lines, level=2):
@@ -69,77 +70,80 @@ def parse_docs_yaml(yaml_content):
     except Exception as e:
         return f"Error parsing YAML: {e}"
 
+# Function to convert HTML to markdown
+def extract_links(tag, summary_lines, level=2):
+    """Extracts links from the HTML content and converts to markdown format."""
+    links = tag.find_all('a', href=True)
+    for link in links:
+        link_text = link.get_text()
+        link_href = link['href']
+        # Convert .html to .md
+        if link_href.endswith(".html"):
+            link_href = link_href.replace(".html", ".md")
+        summary_lines.append(f"{'  ' * (level - 2)}* [{link_text}]({link_href})\n")
+    
+    # Look for nested dl elements
+    nested_dl = tag.find_all('dl')
+    for nested in nested_dl:
+        extract_links(nested, summary_lines, level + 1)
+
+def html_to_markdown(html_content):
+    """Converts HTML content to markdown format."""
+    soup = BeautifulSoup(html_content, 'html.parser')
+    summary_lines = ["# Table of contents\n"]
+    
+    # Extract links and convert to markdown format
+    extract_links(soup, summary_lines)
+    
+    return "\n".join(summary_lines)
+
 # Streamlit App UI
 st.title("Document Converter to SUMMARY.md")
 
-# Option for converting mint.json
-st.subheader("Mint JSON to SUMMARY.md Converter")
-uploaded_json = st.file_uploader("Upload mint.json", type=["json"])
+# Dropdown to select the format
+format_selection = st.selectbox(
+    "Select the format you want to import:",
+    ("Select Format", "mint.json", "docs.yml", "HTML")
+)
 
-if uploaded_json:
-    json_content = uploaded_json.read().decode("utf-8")
-    summary_md_json = parse_mint_json(json_content)
-    
-    st.subheader("Generated SUMMARY.md (from mint.json)")
-    st.code(summary_md_json, language="markdown")
+if format_selection == "mint.json":
+    st.subheader("Mint JSON to SUMMARY.md Converter")
+    json_content = st.text_area("Paste mint.json content here")
 
-    # Provide a download button
-    summary_bytes_json = summary_md_json.encode("utf-8")
-    st.download_button("Download SUMMARY.md (from mint.json)", summary_bytes_json, "SUMMARY.md", "text/markdown")
-
-# Option for converting docs.yml
-st.subheader("Fern Docs YAML to SUMMARY.md Converter")
-uploaded_yaml = st.file_uploader("Upload docs.yml", type=["yml", "yaml"])
-
-if uploaded_yaml:
-    yaml_content = uploaded_yaml.read().decode("utf-8")
-    summary_md_yaml = parse_docs_yaml(yaml_content)
-    
-    st.subheader("Generated SUMMARY.md (from docs.yml)")
-    st.code(summary_md_yaml, language="markdown")
-
-    # Provide a download button
-    summary_bytes_yaml = summary_md_yaml.encode("utf-8")
-    st.download_button("Download SUMMARY.md (from docs.yml)", summary_bytes_yaml, "SUMMARY.md", "text/markdown")
-
-# Option for converting HTML to markdown
-st.subheader("HTML to Markdown Converter")
-html_input = st.text_area("Paste your HTML here")
-
-if html_input:
-    from bs4 import BeautifulSoup
-
-    def extract_links(tag, summary_lines, level=2):
-        """Extracts links from the HTML content and converts to markdown format."""
-        links = tag.find_all('a', href=True)
-        for link in links:
-            link_text = link.get_text()
-            link_href = link['href']
-            # Convert .html to .md
-            if link_href.endswith(".html"):
-                link_href = link_href.replace(".html", ".md")
-            summary_lines.append(f"{'  ' * (level - 2)}* [{link_text}]({link_href})\n")
+    if json_content:
+        summary_md_json = parse_mint_json(json_content)
         
-        # Look for nested dl elements
-        nested_dl = tag.find_all('dl')
-        for nested in nested_dl:
-            extract_links(nested, summary_lines, level + 1)
+        st.subheader("Generated SUMMARY.md (from mint.json)")
+        st.code(summary_md_json, language="markdown")
 
-    def html_to_markdown(html_content):
-        """Converts HTML content to markdown format."""
-        soup = BeautifulSoup(html_content, 'html.parser')
-        summary_lines = ["# Table of contents\n"]
+        # Provide a download button
+        summary_bytes_json = summary_md_json.encode("utf-8")
+        st.download_button("Download SUMMARY.md (from mint.json)", summary_bytes_json, "SUMMARY.md", "text/markdown")
+
+elif format_selection == "docs.yml":
+    st.subheader("Fern Docs YAML to SUMMARY.md Converter")
+    yaml_content = st.text_area("Paste docs.yml content here")
+
+    if yaml_content:
+        summary_md_yaml = parse_docs_yaml(yaml_content)
         
-        # Extract links and convert to markdown format
-        extract_links(soup, summary_lines)
-        
-        return "\n".join(summary_lines)
+        st.subheader("Generated SUMMARY.md (from docs.yml)")
+        st.code(summary_md_yaml, language="markdown")
 
-    markdown_content = html_to_markdown(html_input)
+        # Provide a download button
+        summary_bytes_yaml = summary_md_yaml.encode("utf-8")
+        st.download_button("Download SUMMARY.md (from docs.yml)", summary_bytes_yaml, "SUMMARY.md", "text/markdown")
 
-    st.subheader("Generated SUMMARY.md (from HTML)")
-    st.code(markdown_content, language="markdown")
+elif format_selection == "HTML":
+    st.subheader("HTML to Markdown Converter")
+    html_input = st.text_area("Paste HTML content here")
 
-    # Provide a download button
-    summary_bytes_html = markdown_content.encode("utf-8")
-    st.download_button("Download SUMMARY.md (from HTML)", summary_bytes_html, "SUMMARY.md", "text/markdown")
+    if html_input:
+        markdown_content = html_to_markdown(html_input)
+
+        st.subheader("Generated SUMMARY.md (from HTML)")
+        st.code(markdown_content, language="markdown")
+
+        # Provide a download button
+        summary_bytes_html = markdown_content.encode("utf-8")
+        st.download_button("Download SUMMARY.md (from HTML)", summary_bytes_html, "SUMMARY.md", "text/markdown")
