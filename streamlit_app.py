@@ -27,7 +27,7 @@ def html_to_markdown(html_content):
         if tag.name == 'span' and tag.get('class') == ['section']:
             # Convert group name to Markdown header
             group_name = tag.get_text(strip=True)
-            markdown_output += f"## {group_name}\n"
+            markdown_output += f"## {group_name}\n"  # Ensure only two hashtags (##)
 
         # Find all anchor tags in the current tag
         links = tag.find_all('a', href=True)
@@ -63,10 +63,16 @@ def extract_structure(data, summary_lines, level=2):
     
     elif isinstance(data, dict):  # If it's a dictionary, look for relevant keys
         if "section" in data:
-            summary_lines.append(f"{'#' * level} {data['section']}\n")  # Sections become ##, ###, etc.
+            # Use only two hashtags (##) for sections
+            summary_lines.append(f"## {data['section']}\n")  # Sections become ##, not ###.
         
         if "page" in data and "path" in data:
-            summary_lines.append(f"* [{data['page']}]({data['path']})\n")
+            # Convert .mdx extension to .md in the page path
+            path = data['path']
+            if path.endswith('.mdx'):
+                path = path.replace('.mdx', '.md')
+
+            summary_lines.append(f"* [{data['page']}]({path})\n")
         
         # Recursively check for nested structures
         for key, value in data.items():
