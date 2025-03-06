@@ -67,15 +67,21 @@ if format_option == "docs.yml":
     else:
         yaml_content = None
     
-    if yaml_content:
-        summary_md = parse_docs_yaml(yaml_content)
-        
-        st.subheader("Generated SUMMARY.md")
-        st.code(summary_md, language="markdown")
+    # Button to generate the result for docs.yml
+    if st.button("Generate SUMMARY.md"):
+        if yaml_content:
+            summary_md = parse_docs_yaml(yaml_content)
+            if summary_md.startswith("Error"):
+                st.error(summary_md)  # Show the error if parsing fails
+            else:
+                st.subheader("Generated SUMMARY.md")
+                st.code(summary_md, language="markdown")
 
-        # Provide a download button
-        summary_bytes = summary_md.encode("utf-8")
-        st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+                # Provide a download button
+                summary_bytes = summary_md.encode("utf-8")
+                st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+        else:
+            st.warning("Please upload or paste the docs.yml content to generate SUMMARY.md.")
 
 elif format_option == "mint.json":
     # File upload option for mint.json
@@ -91,12 +97,18 @@ elif format_option == "mint.json":
     else:
         json_content = None
     
-    if json_content:
-        summary_md = parse_mint_json(json_content)
-        
-        st.subheader("Generated SUMMARY.md")
-        st.code(summary_md, language="markdown")
+    # Button to generate the result for mint.json
+    if st.button("Generate SUMMARY.md"):
+        if json_content:
+            summary_md = parse_mint_json(json_content)
+            if summary_md.startswith("Error"):
+                st.error(summary_md)  # Show the error if parsing fails
+            else:
+                st.subheader("Generated SUMMARY.md")
+                st.code(summary_md, language="markdown")
 
-        # Provide a download button
-        summary_bytes = summary_md.encode("utf-8")
-        st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+                # Provide a download button
+                summary_bytes = summary_md.encode("utf-8")
+                st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+        else:
+            st.warning("Please upload or paste the mint.json content to generate SUMMARY.md.")
