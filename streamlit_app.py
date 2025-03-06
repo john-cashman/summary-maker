@@ -82,17 +82,18 @@ elif format_option == "mint.json":
 uploaded_file = st.file_uploader(f"Upload {format_option}", type=file_extensions)
 input_text = st.text_area(f"Or paste {format_option} content below:")
 
-if uploaded_file:
-    content = uploaded_file.read().decode("utf-8")
-elif input_text:
-    content = input_text
-else:
-    content = None
+if st.button("Convert"):  # Added convert button
+    if uploaded_file:
+        content = uploaded_file.read().decode("utf-8")
+    elif input_text:
+        content = input_text
+    else:
+        content = None
 
-if content:
-    summary_md = parse_data(content, file_type)
-    st.subheader("Generated SUMMARY.md")
-    st.code(summary_md, language="markdown")
-    summary_bytes = summary_md.encode("utf-8")
-    st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
-    st.success("Conversion successful!")
+    if content:
+        summary_md = parse_data(content, file_type)
+        st.subheader("Generated SUMMARY.md")
+        st.code(summary_md, language="markdown")
+        summary_bytes = summary_md.encode("utf-8")
+        st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+        st.success("Conversion successful!")
