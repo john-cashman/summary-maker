@@ -2,19 +2,19 @@ import streamlit as st
 import json
 import yaml
 
-def extract_structure_yaml(data, summary_lines, level=2):
+def extract_structure_yaml(data, summary_lines, level=2, indent=""):
     """Recursively extracts section, page, and path from the YAML structure."""
     if isinstance(data, list):
         for item in data:
-            extract_structure_yaml(item, summary_lines, level)
+            extract_structure_yaml(item, summary_lines, 2, indent)
     elif isinstance(data, dict):
         if "section" in data:
-            summary_lines.append(f"{'#' * level} {data['section']}\n")
+            summary_lines.append(f"## {data['section']}\n")
         if "page" in data and "path" in data:
-            summary_lines.append(f"* [{data['page']}]({data['path']})\n")
+            summary_lines.append(f"{indent}* [{data['page']}]({data['path']})\n")
         for key, value in data.items():
             if isinstance(value, (list, dict)):
-                extract_structure_yaml(value, summary_lines, level + 1)
+                extract_structure_yaml(value, summary_lines, 2, indent + "  ")
 
 def extract_structure_json(data, summary_lines, level=2, indent=""):
     """Recursively extracts groups and pages from the Mintlify JSON structure with indentation."""
