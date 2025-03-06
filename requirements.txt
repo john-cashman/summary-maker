@@ -1,3 +1,5 @@
 streamlit
 pyyaml
+beautifulsoup4
+lxml
 
