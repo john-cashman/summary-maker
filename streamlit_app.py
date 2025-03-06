@@ -25,23 +25,23 @@ def extract_structure_json(data, summary_lines, level=2, indent=""):
         if "dropdown" in data:
             summary_lines.append(f"{'#' * level} {data['dropdown']}\n")
             if "groups" in data:
-                extract_structure_json(data["groups"], summary_lines, level + 1, indent)
+                extract_structure_json(data["groups"], summary_lines, 2, indent)
         elif "group" in data:
-            summary_lines.append(f"{'#' * (level + 1)} {data['group']}\n")
+            summary_lines.append(f"## {data['group']}\n")
             if "pages" in data:
                 for page in data["pages"]:
                     if isinstance(page, str):
                         page_link = page.replace("/", "/") + ".md"
                         summary_lines.append(f"{indent}* [{page}]({page_link})\n")
                     elif isinstance(page, dict):
-                        extract_structure_json(page, summary_lines, level + 2, indent + "  ")
+                        extract_structure_json(page, summary_lines, 2, indent + "  ")
         elif "pages" in data:
             for page in data["pages"]:
                 if isinstance(page, str):
                     page_link = page.replace("/", "/") + ".md"
                     summary_lines.append(f"{indent}* [{page}]({page_link})\n")
                 elif isinstance(page, dict):
-                    extract_structure_json(page, summary_lines, level + 2, indent + "  ")
+                    extract_structure_json(page, summary_lines, 2, indent + "  ")
 
 def parse_data(content, format_type):
     """Parses JSON or YAML content and extracts groups and pages."""
