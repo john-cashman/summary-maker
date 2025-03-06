@@ -1,9 +1,10 @@
 import streamlit as st
 import yaml
-from bs4 import BeautifulSoup
+import json
 
 # Function to extract links from HTML and convert to markdown
 def html_to_markdown(html_content):
+    from bs4 import BeautifulSoup
     # Parse HTML content using BeautifulSoup
     soup = BeautifulSoup(html_content, 'html.parser')
     markdown_output = "# Table of contents\n\n"  # Starting header for Table of Contents
@@ -91,11 +92,39 @@ def parse_docs_yaml(yaml_content):
     except Exception as e:
         return f"Error parsing YAML: {e}"
 
+# Function to process mint.json data and convert to markdown
+def mint_json_to_markdown(json_content):
+    data = json.loads(json_content)
+    markdown_output = "# Table of contents\n\n"
+    
+    def process_group(group, level=2):
+        nonlocal markdown_output
+        group_name = group['group']
+        markdown_output += f"## {group_name}\n"  # Group names are converted to ## in markdown
+        
+        if 'pages' in group:
+            for page in group['pages']:
+                if isinstance(page, str):
+                    # Single page link
+                    markdown_output += f"* [{page.split('/')[-1]}]({page}.md)\n"
+                elif isinstance(page, dict) and 'group' in page:
+                    # Nested group
+                    process_group(page, level + 1)
+                    # For nested pages, list each page under its group
+                    if 'pages' in page:
+                        for nested_page in page['pages']:
+                            markdown_output += f"  * [{nested_page.split('/')[-1]}]({nested_page}.md)\n"
+    
+    # Start the process with the root group
+    process_group(data)
+    
+    return markdown_output
+
 # Streamlit UI
 st.title("Multi-format Markdown Converter")
 
-# Option to choose between HTML or docs.yml input
-option = st.selectbox("Choose the input format", ("HTML", "docs.yml"))
+# Option to choose between HTML, docs.yml, or mint.json input
+option = st.selectbox("Choose the input format", ("HTML", "docs.yml", "mint.json"))
 
 if option == "HTML":
     html_input = st.text_area("Paste your HTML content here", height=300)
@@ -136,3 +165,23 @@ elif option == "docs.yml":
                 st.error(f"Error: {e}")
         else:
             st.error("Please paste docs.yml content into the text area.")
+
+elif option == "mint.json":
+    json_input = st.text_area("Paste your mint.json content here", height=300)
+    
+    if st.button("Convert mint.json to SUMMARY.md"):
+        if json_input:
+            try:
+                # Process the mint.json input and convert to Markdown
+                summary_md = mint_json_to_markdown(json_input)
+                
+                st.subheader("Generated SUMMARY.md")
+                st.code(summary_md, language="markdown")
+
+                # Provide a download button
+                summary_bytes = summary_md.encode("utf-8")
+                st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+            except Exception as e:
+                st.error(f"Error: {e}")
+        else:
+            st.error("Please paste mint.json content into the text area.")
