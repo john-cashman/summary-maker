@@ -13,7 +13,7 @@ def extract_yaml_structure(data, summary_lines, level=2):
             summary_lines.append(f"{'#' * level} {data['section']}\n")  
         
         if "page" in data and "path" in data:
-            page_path = data["path"].replace(".mdx", ".md")
+            page_path = data["path"].replace(".mdx", ".md")  # Ensure .mdx becomes .md
             summary_lines.append(f"* [{data['page']}]({page_path})\n")
         
         for key, value in data.items():
@@ -45,7 +45,7 @@ def extract_json_structure(data, summary_lines, level=2):
         if "pages" in data:
             for page in data["pages"]:
                 if isinstance(page, str):
-                    page_link = page.replace(".mdx", ".md")
+                    page_link = page.replace(".mdx", ".md")  # Convert .mdx to .md
                     summary_lines.append(f"* [{page}]({page_link})\n")
                 elif isinstance(page, dict):
                     extract_json_structure(page, summary_lines, level + 1)
@@ -56,13 +56,14 @@ def parse_mint_json(json_content):
         data = json.loads(json_content)
         summary_lines = ["# Table of contents\n"]
 
-        extract_json_structure(data, summary_lines)
+        if "navigation" in data:
+            extract_json_structure(data["navigation"], summary_lines)
 
         return "\n".join(summary_lines)
     except Exception as e:
         return f"Error parsing JSON: {e}"
 
-# Streamlit UI for selecting input format
+# Streamlit UI
 st.title("Docs to SUMMARY.md Converter")
 
 format_option = st.selectbox("Select Input Format", ["docs.yml", "mint.json"])
