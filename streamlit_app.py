@@ -3,6 +3,7 @@ import json
 import yaml
 
 def extract_structure_yaml(data, summary_lines, level=2):
+    """Extracts structure from docs.yml, ensuring page titles display only the last part of the path."""
     if isinstance(data, list):
         for item in data:
             extract_structure_yaml(item, summary_lines, level)
@@ -17,6 +18,7 @@ def extract_structure_yaml(data, summary_lines, level=2):
                 extract_structure_yaml(value, summary_lines, level + 1)
 
 def parse_docs_yaml(yaml_content):
+    """Parses docs.yml content and converts it into SUMMARY.md format."""
     try:
         data = yaml.safe_load(yaml_content)
         summary_lines = ["# Table of contents\n"]
@@ -26,6 +28,7 @@ def parse_docs_yaml(yaml_content):
         return f"Error parsing YAML: {e}"
 
 def extract_structure_json(data, summary_lines, level=2):
+    """Extracts structure from mint.json, ensuring page titles display only the last part of the path."""
     if isinstance(data, list):
         for item in data:
             extract_structure_json(item, summary_lines, level)
@@ -41,6 +44,7 @@ def extract_structure_json(data, summary_lines, level=2):
                     extract_structure_json(page, summary_lines, level + 1)
 
 def parse_mint_json(json_content):
+    """Parses mint.json content and converts it into SUMMARY.md format."""
     try:
         data = json.loads(json_content)
         summary_lines = ["# Table of contents\n"]
@@ -51,6 +55,7 @@ def parse_mint_json(json_content):
     except Exception as e:
         return f"Error parsing JSON: {e}"
 
+# Streamlit UI
 st.title("Docs to SUMMARY.md Converter")
 format_option = st.selectbox("Select Input Format", ["docs.yml", "mint.json"])
 uploaded_file = st.file_uploader("Upload file", type=["yml", "yaml", "json"])
