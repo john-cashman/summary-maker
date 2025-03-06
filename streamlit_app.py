@@ -1,48 +1,54 @@
 import streamlit as st
-import yaml
-import io
+from bs4 import BeautifulSoup
+import os
 
-def extract_structure(data, summary_lines, level=2):
-    """Recursively extracts section, page, and path from the YAML structure."""
-    if isinstance(data, list):  # If the current data is a list, iterate over it
-        for item in data:
-            extract_structure(item, summary_lines, level)
-    
-    elif isinstance(data, dict):  # If it's a dictionary, look for relevant keys
-        if "section" in data:
-            summary_lines.append(f"{'#' * level} {data['section']}\n")  # Sections become ##, ###, etc.
+def html_to_markdown(html_content):
+    # Parse HTML content using BeautifulSoup
+    soup = BeautifulSoup(html_content, 'html.parser')
+    markdown_output = ""
+
+    # Process groups
+    groups = soup.find_all(class_='group')  # Assuming groups have class "group", adjust based on your HTML structure
+    for group in groups:
+        group_name = group.get_text(strip=True)
+        markdown_output += f"## {group_name}\n"
+
+    # Process pages and subpages
+    pages = soup.find_all(class_='page')  # Assuming pages have class "page", adjust based on your HTML structure
+    for page in pages:
+        page_name = page.get_text(strip=True)
+        page_link = page.get('href', '').replace('.html', '.md')  # Convert .html to .md
+        markdown_output += f"* [{page_name}]({page_link})\n"
         
-        if "page" in data and "path" in data:
-            summary_lines.append(f"* [{data['page']}]({data['path']})\n")
-        
-        # Recursively check for nested structures
-        for key, value in data.items():
-            if isinstance(value, (list, dict)):  # If nested, go deeper
-                extract_structure(value, summary_lines, level + 1)
+        # Check for subpages
+        subpages = page.find_all(class_='subpage')  # Assuming subpages have class "subpage", adjust as needed
+        for subpage in subpages:
+            subpage_name = subpage.get_text(strip=True)
+            subpage_link = subpage.get('href', '').replace('.html', '.md')  # Convert .html to .md
+            markdown_output += f"  * [{subpage_name}]({subpage_link})\n"
 
-def parse_docs_yaml(yaml_content):
-    """Parses the YAML file and extracts sections, pages, and paths."""
-    try:
-        data = yaml.safe_load(yaml_content)
-        summary_lines = ["# Table of contents\n"]
+    return markdown_output
 
-        extract_structure(data, summary_lines)
+# Streamlit UI
+st.title("HTML to Markdown Converter")
 
-        return "\n".join(summary_lines)
-    except Exception as e:
-        return f"Error parsing YAML: {e}"
+# Upload HTML file
+html_file = st.file_uploader("Upload an HTML file", type=["html"])
 
-st.title("Fern Docs to SUMMARY.md Converter")
-
-uploaded_file = st.file_uploader("Upload docs.yml", type=["yml", "yaml"])
-
-if uploaded_file:
-    yaml_content = uploaded_file.read().decode("utf-8")
-    summary_md = parse_docs_yaml(yaml_content)
+if html_file is not None:
+    html_content = html_file.read().decode('utf-8')
     
-    st.subheader("Generated SUMMARY.md")
-    st.code(summary_md, language="markdown")
-
-    # Provide a download button
-    summary_bytes = summary_md.encode("utf-8")
-    st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+    # Convert HTML to Markdown
+    markdown_content = html_to_markdown(html_content)
+    
+    # Display the markdown content
+    st.subheader("Converted Markdown")
+    st.code(markdown_content, language='markdown')
+    
+    # Provide an option to download the converted markdown file
+    st.download_button(
+        label="Download Markdown file",
+        data=markdown_content,
+        file_name="converted_file.md",
+        mime="text/markdown"
+    )
