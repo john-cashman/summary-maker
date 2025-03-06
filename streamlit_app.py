@@ -30,9 +30,7 @@ def parse_mint_json(json_content):
     try:
         data = json.loads(json_content)
         summary_lines = ["# Table of contents\n"]
-
         extract_mint_structure(data, summary_lines)
-
         return "\n".join(summary_lines)
     except Exception as e:
         return f"Error parsing mint.json: {e}"
@@ -63,9 +61,7 @@ def parse_docs_yaml(yaml_content):
     try:
         data = yaml.safe_load(yaml_content)
         summary_lines = ["# Table of contents\n"]
-
         extract_structure(data, summary_lines)
-
         return "\n".join(summary_lines)
     except Exception as e:
         return f"Error parsing YAML: {e}"
@@ -111,6 +107,9 @@ if format_selection == "mint.json":
     json_content = st.text_area("Paste mint.json content here")
 
     if json_content:
+        # Debugging: Check the content
+        st.text(f"JSON content received: {json_content[:200]}...")  # Show part of the input
+
         summary_md_json = parse_mint_json(json_content)
         
         st.subheader("Generated SUMMARY.md (from mint.json)")
@@ -125,6 +124,9 @@ elif format_selection == "docs.yml":
     yaml_content = st.text_area("Paste docs.yml content here")
 
     if yaml_content:
+        # Debugging: Check the content
+        st.text(f"YAML content received: {yaml_content[:200]}...")  # Show part of the input
+
         summary_md_yaml = parse_docs_yaml(yaml_content)
         
         st.subheader("Generated SUMMARY.md (from docs.yml)")
@@ -139,6 +141,9 @@ elif format_selection == "HTML":
     html_input = st.text_area("Paste HTML content here")
 
     if html_input:
+        # Debugging: Check the content
+        st.text(f"HTML content received: {html_input[:200]}...")  # Show part of the input
+
         markdown_content = html_to_markdown(html_input)
 
         st.subheader("Generated SUMMARY.md (from HTML)")
