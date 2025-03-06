@@ -2,22 +2,60 @@ import streamlit as st
 import json
 import yaml
 
-# Function to extract YAML structure
+# Function to extract structure for mint.json
+def extract_json_structure(data, summary_lines, level=2):
+    """Recursively extracts section, page, and path from the JSON structure."""
+    if isinstance(data, list):
+        for item in data:
+            extract_json_structure(item, summary_lines, level)
+    
+    elif isinstance(data, dict):
+        if "group" in data:
+            summary_lines.append(f"{'#' * level} {data['group']}\n")
+        
+        if "pages" in data:
+            for page in data["pages"]:
+                if isinstance(page, str):  # If the page is just a string, create a markdown link
+                    page_link = page.replace("/", "/") + ".md"
+                    summary_lines.append(f"* [{page}]({page_link})\n")
+                elif isinstance(page, dict):  # Handle nested groups
+                    extract_json_structure(page, summary_lines, level + 1)
+
+def parse_mint_json(json_content):
+    """Parses the JSON file and extracts groups and pages."""
+    try:
+        data = json.loads(json_content)
+        summary_lines = ["# Table of contents\n"]
+
+        if "navigation" in data:
+            for item in data["navigation"]:
+                extract_json_structure(item, summary_lines)
+
+        return "\n".join(summary_lines)
+    except Exception as e:
+        return f"Error parsing JSON: {e}"
+
+# Function to extract structure for docs.yml
 def extract_yaml_structure(data, summary_lines, level=2):
+    """Recursively extracts section, page, and path from the YAML structure."""
     if isinstance(data, list):
         for item in data:
             extract_yaml_structure(item, summary_lines, level)
+    
     elif isinstance(data, dict):
         if "section" in data:
             summary_lines.append(f"{'#' * level} {data['section']}\n")
+        
         if "page" in data and "path" in data:
             page_path = data["path"].replace(".mdx", ".md")
             summary_lines.append(f"* [{data['page']}]({page_path})\n")
+        
         for key, value in data.items():
             if isinstance(value, (list, dict)):
                 extract_yaml_structure(value, summary_lines, level + 1)
 
 def parse_docs_yaml(yaml_content):
+    """Parses the YAML file and extracts sections, pages, and paths."""
     try:
         data = yaml.safe_load(yaml_content)
         summary_lines = ["# Table of contents\n"]
@@ -25,34 +63,6 @@ def parse_docs_yaml(yaml_content):
         return "\n".join(summary_lines)
     except Exception as e:
         return f"Error parsing YAML: {e}"
-
-# Function to extract JSON structure
-def extract_json_structure(data, summary_lines, level=2):
-    if isinstance(data, list):
-        for item in data:
-            extract_json_structure(item, summary_lines, level)
-    elif isinstance(data, dict):
-        if "group" in data:
-            summary_lines.append(f"{'#' * level} {data['group']}\n")
-        if "pages" in data:
-            for page in data["pages"]:
-                if isinstance(page, str):
-                    page_link = page.replace(".mdx", ".md")
-                    summary_lines.append(f"* [{page}]({page_link})\n")
-                elif isinstance(page, dict):
-                    extract_json_structure(page, summary_lines, level + 1)
-
-def parse_mint_json(json_content):
-    try:
-        data = json.loads(json_content)
-        summary_lines = ["# Table of contents\n"]
-
-        if isinstance(data, dict) and "navigation" in data:
-            extract_json_structure(data["navigation"], summary_lines)
-
-        return "\n".join(summary_lines)
-    except Exception as e:
-        return f"Error parsing JSON: {e}"
 
 # Streamlit UI
 st.title("Docs to SUMMARY.md Converter")
