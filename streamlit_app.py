@@ -88,8 +88,8 @@ def parse_docs_yaml(yaml_content):
 # Streamlit UI
 st.title("Multi-format Markdown Converter")
 
-# Option to choose between HTML or YAML input
-option = st.selectbox("Choose the input format", ("HTML", "YAML"))
+# Option to choose between HTML or docs.yml input
+option = st.selectbox("Choose the input format", ("HTML", "docs.yml"))
 
 if option == "HTML":
     html_input = st.text_area("Paste your HTML content here", height=300)
@@ -111,16 +111,22 @@ if option == "HTML":
         else:
             st.error("Please paste HTML content into the text area.")
 
-elif option == "YAML":
-    uploaded_file = st.file_uploader("Upload docs.yml", type=["yml", "yaml"])
+elif option == "docs.yml":
+    yaml_input = st.text_area("Paste your docs.yml content here", height=300)
+    
+    if st.button("Convert docs.yml to SUMMARY.md"):
+        if yaml_input:
+            try:
+                # Parse the YAML input and convert to Markdown
+                summary_md = parse_docs_yaml(yaml_input)
+                
+                st.subheader("Generated SUMMARY.md")
+                st.code(summary_md, language="markdown")
 
-    if uploaded_file:
-        yaml_content = uploaded_file.read().decode("utf-8")
-        summary_md = parse_docs_yaml(yaml_content)
-        
-        st.subheader("Generated SUMMARY.md")
-        st.code(summary_md, language="markdown")
-
-        # Provide a download button
-        summary_bytes = summary_md.encode("utf-8")
-        st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+                # Provide a download button
+                summary_bytes = summary_md.encode("utf-8")
+                st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
+            except Exception as e:
+                st.error(f"Error: {e}")
+        else:
+            st.error("Please paste docs.yml content into the text area.")
