@@ -26,6 +26,7 @@ def parse_docs_yaml(yaml_content):
         data = yaml.safe_load(yaml_content)
         summary_lines = ["# Table of contents\n"]
         
+        # Check if 'navigation' key exists in the YAML structure
         if "navigation" in data:
             for item in data["navigation"]:
                 extract_structure(item, summary_lines)
@@ -40,6 +41,7 @@ def parse_mint_json(json_content):
         data = json.loads(json_content)
         summary_lines = ["# Table of contents\n"]
 
+        # Check if 'navigation' key exists in the JSON structure
         if "navigation" in data:
             for item in data["navigation"]:
                 extract_structure(item, summary_lines)
