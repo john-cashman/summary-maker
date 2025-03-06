@@ -1,6 +1,5 @@
 import streamlit as st
 from bs4 import BeautifulSoup
-import os
 
 def html_to_markdown(html_content):
     # Parse HTML content using BeautifulSoup
@@ -32,23 +31,17 @@ def html_to_markdown(html_content):
 # Streamlit UI
 st.title("HTML to Markdown Converter")
 
-# Upload HTML file
-html_file = st.file_uploader("Upload an HTML file", type=["html"])
+# Input HTML via a text area
+html_input = st.text_area("Paste your HTML content here", height=300)
 
-if html_file is not None:
-    html_content = html_file.read().decode('utf-8')
-    
-    # Convert HTML to Markdown
-    markdown_content = html_to_markdown(html_content)
-    
-    # Display the markdown content
-    st.subheader("Converted Markdown")
-    st.code(markdown_content, language='markdown')
-    
-    # Provide an option to download the converted markdown file
-    st.download_button(
-        label="Download Markdown file",
-        data=markdown_content,
-        file_name="converted_file.md",
-        mime="text/markdown"
-    )
+# Convert the HTML content to Markdown when user presses the button
+if st.button("Convert to Markdown"):
+    if html_input:
+        # Convert the HTML input to Markdown
+        markdown_content = html_to_markdown(html_input)
+
+        # Display the converted Markdown content in a text area
+        st.subheader("Converted Markdown")
+        st.text_area("Markdown Output", value=markdown_content, height=300)
+    else:
+        st.error("Please paste HTML content into the text area.")
