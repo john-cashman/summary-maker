@@ -3,7 +3,7 @@ import json
 import yaml
 
 def extract_structure(data, summary_lines, level=2):
-    """Recursively extracts section, page, and path from the JSON structure."""
+    """Recursively extracts section, page, and path from the JSON/YAML structure."""
     if isinstance(data, list):  # If the current data is a list, iterate over it
         for item in data:
             extract_structure(item, summary_lines, level)
@@ -54,10 +54,20 @@ st.title("Docs to SUMMARY.md Converter")
 format_option = st.selectbox("Select Input Format", ["docs.yml", "mint.json"])
 
 if format_option == "docs.yml":
+    # File upload option for docs.yml
     uploaded_file = st.file_uploader("Upload docs.yml", type=["yml", "yaml"])
     
+    # Text input field option for docs.yml
+    yaml_input = st.text_area("Or paste docs.yml content below:")
+
     if uploaded_file:
         yaml_content = uploaded_file.read().decode("utf-8")
+    elif yaml_input:
+        yaml_content = yaml_input
+    else:
+        yaml_content = None
+    
+    if yaml_content:
         summary_md = parse_docs_yaml(yaml_content)
         
         st.subheader("Generated SUMMARY.md")
@@ -68,10 +78,20 @@ if format_option == "docs.yml":
         st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
 
 elif format_option == "mint.json":
+    # File upload option for mint.json
     uploaded_file = st.file_uploader("Upload mint.json", type=["json"])
     
+    # Text input field option for mint.json
+    json_input = st.text_area("Or paste mint.json content below:")
+
     if uploaded_file:
         json_content = uploaded_file.read().decode("utf-8")
+    elif json_input:
+        json_content = json_input
+    else:
+        json_content = None
+    
+    if json_content:
         summary_md = parse_mint_json(json_content)
         
         st.subheader("Generated SUMMARY.md")
