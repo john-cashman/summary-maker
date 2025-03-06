@@ -2,60 +2,41 @@ import streamlit as st
 import yaml
 import json
 
-# Function to extract links from HTML and convert to markdown
-def html_to_markdown(html_content):
-    from bs4 import BeautifulSoup
-    # Parse HTML content using BeautifulSoup
-    soup = BeautifulSoup(html_content, 'html.parser')
-    markdown_output = "# Table of contents\n\n"  # Starting header for Table of Contents
+# Function to convert mint.json to SUMMARY.md format
+def extract_mint_structure(data, summary_lines, level=2):
+    """Recursively extracts group and page structure from the mint.json file."""
+    if isinstance(data, list):  # If the current data is a list, iterate over it
+        for item in data:
+            extract_mint_structure(item, summary_lines, level)
+    
+    elif isinstance(data, dict):  # If it's a dictionary, look for relevant keys
+        group = data.get("group", None)
+        if group:
+            summary_lines.append(f"{'#' * level} {group}\n")  # Sections become ##, ###, etc.
+        
+        pages = data.get("pages", None)
+        if pages:
+            for page in pages:
+                if isinstance(page, dict):  # Handle nested groups
+                    extract_mint_structure(page, summary_lines, level + 1)
+                else:  # Handle direct pages
+                    # Convert page to .md format
+                    page_path = page.replace(".json", ".md")  # Make sure the page ends with .md
+                    summary_lines.append(f"* [{page}]({page_path})\n")
 
-    # Set to keep track of already processed elements (to avoid infinite recursion)
-    visited_tags = set()
+def parse_mint_json(json_content):
+    """Parses the mint.json file and extracts groups and pages."""
+    try:
+        data = json.loads(json_content)
+        summary_lines = ["# Table of contents\n"]
 
-    def extract_links(tag, level=1):
-        """
-        Extract links from the HTML, handle nested links recursively.
-        """
-        nonlocal markdown_output
+        extract_mint_structure(data, summary_lines)
 
-        # Check if the tag is already processed to prevent infinite recursion
-        tag_id = id(tag)
-        if tag_id in visited_tags:
-            return
-        visited_tags.add(tag_id)
+        return "\n".join(summary_lines)
+    except Exception as e:
+        return f"Error parsing mint.json: {e}"
 
-        # Check if the tag is a group and treat it as a header
-        if tag.name == 'span' and tag.get('class') == ['section']:
-            # Convert group name to Markdown header
-            group_name = tag.get_text(strip=True)
-            markdown_output += f"## {group_name}\n"  # Ensure only two hashtags (##)
-
-        # Find all anchor tags in the current tag
-        links = tag.find_all('a', href=True)
-
-        for link in links:
-            text = link.get_text(strip=True)
-            href = link['href']
-
-            # Convert .html to .md
-            if href.endswith('.html'):
-                href = href.replace('.html', '.md')
-
-            # Add the link as a markdown list item
-            markdown_output += "  " * (level - 1) + f"* [{text}]({href})\n"
-
-            # Look for nested <dl> (definition list) elements and process them as sub-pages
-            nested_dl = link.find_parent('dd')  # Check if it's in a <dd> (nested list item)
-            if nested_dl:
-                # Recursive call for nested <dl> inside the <dd>
-                extract_links(nested_dl, level + 1)
-
-    # Start processing from the entire document (or specific part if needed)
-    extract_links(soup)
-
-    return markdown_output
-
-# Function to extract structure from the YAML document
+# Function to recursively extract structure from docs.yml (Fern Docs)
 def extract_structure(data, summary_lines, level=2):
     """Recursively extracts section, page, and path from the YAML structure."""
     if isinstance(data, list):  # If the current data is a list, iterate over it
@@ -64,16 +45,12 @@ def extract_structure(data, summary_lines, level=2):
     
     elif isinstance(data, dict):  # If it's a dictionary, look for relevant keys
         if "section" in data:
-            # Use only two hashtags (##) for sections
-            summary_lines.append(f"## {data['section']}\n")  # Sections become ##, not ###.
+            summary_lines.append(f"{'#' * level} {data['section']}\n")  # Sections become ##, ###, etc.
         
         if "page" in data and "path" in data:
-            # Convert .mdx extension to .md in the page path
-            path = data['path']
-            if path.endswith('.mdx'):
-                path = path.replace('.mdx', '.md')
-
-            summary_lines.append(f"* [{data['page']}]({path})\n")
+            # Convert page to .md format
+            page_path = data['path'].replace(".yml", ".md")
+            summary_lines.append(f"* [{data['page']}]({page_path})\n")
         
         # Recursively check for nested structures
         for key, value in data.items():
@@ -92,96 +69,77 @@ def parse_docs_yaml(yaml_content):
     except Exception as e:
         return f"Error parsing YAML: {e}"
 
-# Function to process mint.json data and convert to markdown
-def mint_json_to_markdown(json_content):
-    data = json.loads(json_content)
-    markdown_output = "# Table of contents\n\n"
+# Streamlit App UI
+st.title("Document Converter to SUMMARY.md")
+
+# Option for converting mint.json
+st.subheader("Mint JSON to SUMMARY.md Converter")
+uploaded_json = st.file_uploader("Upload mint.json", type=["json"])
+
+if uploaded_json:
+    json_content = uploaded_json.read().decode("utf-8")
+    summary_md_json = parse_mint_json(json_content)
     
-    def process_group(group, level=2):
-        nonlocal markdown_output
-        group_name = group['group']
-        markdown_output += f"## {group_name}\n"  # Group names are converted to ## in markdown
+    st.subheader("Generated SUMMARY.md (from mint.json)")
+    st.code(summary_md_json, language="markdown")
+
+    # Provide a download button
+    summary_bytes_json = summary_md_json.encode("utf-8")
+    st.download_button("Download SUMMARY.md (from mint.json)", summary_bytes_json, "SUMMARY.md", "text/markdown")
+
+# Option for converting docs.yml
+st.subheader("Fern Docs YAML to SUMMARY.md Converter")
+uploaded_yaml = st.file_uploader("Upload docs.yml", type=["yml", "yaml"])
+
+if uploaded_yaml:
+    yaml_content = uploaded_yaml.read().decode("utf-8")
+    summary_md_yaml = parse_docs_yaml(yaml_content)
+    
+    st.subheader("Generated SUMMARY.md (from docs.yml)")
+    st.code(summary_md_yaml, language="markdown")
+
+    # Provide a download button
+    summary_bytes_yaml = summary_md_yaml.encode("utf-8")
+    st.download_button("Download SUMMARY.md (from docs.yml)", summary_bytes_yaml, "SUMMARY.md", "text/markdown")
+
+# Option for converting HTML to markdown
+st.subheader("HTML to Markdown Converter")
+html_input = st.text_area("Paste your HTML here")
+
+if html_input:
+    from bs4 import BeautifulSoup
+
+    def extract_links(tag, summary_lines, level=2):
+        """Extracts links from the HTML content and converts to markdown format."""
+        links = tag.find_all('a', href=True)
+        for link in links:
+            link_text = link.get_text()
+            link_href = link['href']
+            # Convert .html to .md
+            if link_href.endswith(".html"):
+                link_href = link_href.replace(".html", ".md")
+            summary_lines.append(f"{'  ' * (level - 2)}* [{link_text}]({link_href})\n")
         
-        if 'pages' in group:
-            for page in group['pages']:
-                if isinstance(page, str):
-                    # Single page link
-                    markdown_output += f"* [{page.split('/')[-1]}]({page}.md)\n"
-                elif isinstance(page, dict) and 'group' in page:
-                    # Nested group
-                    process_group(page, level + 1)
-                    # For nested pages, list each page under its group
-                    if 'pages' in page:
-                        for nested_page in page['pages']:
-                            markdown_output += f"  * [{nested_page.split('/')[-1]}]({nested_page}.md)\n"
-    
-    # Start the process with the root group
-    process_group(data)
-    
-    return markdown_output
+        # Look for nested dl elements
+        nested_dl = tag.find_all('dl')
+        for nested in nested_dl:
+            extract_links(nested, summary_lines, level + 1)
 
-# Streamlit UI
-st.title("Multi-format Markdown Converter")
+    def html_to_markdown(html_content):
+        """Converts HTML content to markdown format."""
+        soup = BeautifulSoup(html_content, 'html.parser')
+        summary_lines = ["# Table of contents\n"]
+        
+        # Extract links and convert to markdown format
+        extract_links(soup, summary_lines)
+        
+        return "\n".join(summary_lines)
 
-# Option to choose between HTML, docs.yml, or mint.json input
-option = st.selectbox("Choose the input format", ("HTML", "docs.yml", "mint.json"))
+    markdown_content = html_to_markdown(html_input)
 
-if option == "HTML":
-    html_input = st.text_area("Paste your HTML content here", height=300)
-    if st.button("Convert HTML to Markdown"):
-        if html_input:
-            try:
-                # Convert the HTML input to Markdown
-                markdown_content = html_to_markdown(html_input)
+    st.subheader("Generated SUMMARY.md (from HTML)")
+    st.code(markdown_content, language="markdown")
 
-                # Display the converted Markdown content
-                st.subheader("Generated Markdown")
-                st.text_area("Markdown Output", value=markdown_content, height=300)
-
-                # Provide a download button
-                summary_bytes = markdown_content.encode("utf-8")
-                st.download_button("Download Markdown", summary_bytes, "summary.md", "text/markdown")
-            except Exception as e:
-                st.error(f"Error: {e}")
-        else:
-            st.error("Please paste HTML content into the text area.")
-
-elif option == "docs.yml":
-    yaml_input = st.text_area("Paste your docs.yml content here", height=300)
-    
-    if st.button("Convert docs.yml to SUMMARY.md"):
-        if yaml_input:
-            try:
-                # Parse the YAML input and convert to Markdown
-                summary_md = parse_docs_yaml(yaml_input)
-                
-                st.subheader("Generated SUMMARY.md")
-                st.code(summary_md, language="markdown")
-
-                # Provide a download button
-                summary_bytes = summary_md.encode("utf-8")
-                st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
-            except Exception as e:
-                st.error(f"Error: {e}")
-        else:
-            st.error("Please paste docs.yml content into the text area.")
-
-elif option == "mint.json":
-    json_input = st.text_area("Paste your mint.json content here", height=300)
-    
-    if st.button("Convert mint.json to SUMMARY.md"):
-        if json_input:
-            try:
-                # Process the mint.json input and convert to Markdown
-                summary_md = mint_json_to_markdown(json_input)
-                
-                st.subheader("Generated SUMMARY.md")
-                st.code(summary_md, language="markdown")
-
-                # Provide a download button
-                summary_bytes = summary_md.encode("utf-8")
-                st.download_button("Download SUMMARY.md", summary_bytes, "SUMMARY.md", "text/markdown")
-            except Exception as e:
-                st.error(f"Error: {e}")
-        else:
-            st.error("Please paste mint.json content into the text area.")
+    # Provide a download button
+    summary_bytes_html = markdown_content.encode("utf-8")
+    st.download_button("Download SUMMARY.md (from HTML)", summary_bytes_html, "SUMMARY.md", "text/markdown")
